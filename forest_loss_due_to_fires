@@ -1,0 +1,80 @@
+// Calculate the forest loss due to fire
+
+// Load country features from Large Scale International Boundary (LSIB) dataset.
+var countries = ee.FeatureCollection('USDOS/LSIB_SIMPLE/2017');
+
+// Subset the Brazil feature from countries.
+var country = countries.filter(ee.Filter.eq('country_na', 'Brazil'));
+Map.setCenter(-11.2027,-17.1839,5)
+
+// Get the forest loss image from the Hansen Global Forest Change dataset
+var gfc = ee.Image('UMD/hansen/global_forest_change_2018_v1_6');
+var lossImage = gfc.select(['loss']);
+var lossYear = gfc.select(['lossyear']);
+
+// Get the area image multiplying each pixel in the loss image with the land area it covers
+var lossAreaImage = lossImage.multiply(ee.Image.pixelArea());
+
+// Get loss area separately for the year 2018 (band: lossyear = 18)
+var lossAreaByYear = lossAreaImage.addBands(lossYear);
+
+// Create and apply the loss year mask
+var lossYearMask = lossYear.eq(18);
+var lossAreaByYearMask = lossAreaByYear.updateMask(lossYearMask);
+var lossAreaByYearMaskImage = lossAreaByYearMask.select(['loss']);
+
+// Sum the values of pixels of the forest loss area image
+//var stats = lossAreaImage.reduceRegion({
+// var lossStats = lossAreaByYearMaskImage.reduceRegion({
+var lossStats = lossAreaImage.reduceRegion({
+ reducer: ee.Reducer.sum(),
+ geometry: country,
+ scale: 1000,
+ bestEffort: true,
+ maxPixels: 1e9
+});
+
+// Sum the values of pixels of the forest loss area image
+
+var lossStats2018 = lossAreaByYearMaskImage.reduceRegion({
+ reducer: ee.Reducer.sum(),
+ geometry: country,
+ scale: 1000,
+ bestEffort: true,
+ maxPixels: 1e9
+});
+
+var areaLoss = ee.Number(lossStats.get('loss')).divide(1e6);
+print('Forest area loss : ', areaLoss, ' square km');
+
+var areaLoss2018 = ee.Number(lossStats2018.get('loss')).divide(1e6);
+print('Forest area loss in 2018 : ', areaLoss2018, ' square km');
+
+// MODIS
+var fireData = ee.ImageCollection('MODIS/006/MOD14A1')
+   .filterDate('2018-01-01', '2018-12-31')
+;
+// Code continues
+var fireMaskVis = {
+min: 0.0,
+// max: 6000.0,
+max: 100.0,
+bands: ['MaxFRP', 'FireMask', 'FireMask'],
+};
+
+Map.addLayer(fireData, fireMaskVis, 'Fire Mask');
+var fireDataComposite = fireData.max();
+var fireDataCompositeMaxFRP = fireDataComposite.select(['MaxFRP']);
+var fireDataCompositeMaxFRPBin = fireDataCompositeMaxFRP.gt(0);
+var areaForestLossFires = lossAreaByYearMaskImage.multiply(fireDataCompositeMaxFRPBin);
+
+var forestFiresLossStats = areaForestLossFires.reduceRegion({
+ reducer: ee.Reducer.sum(),
+ geometry: country,
+ scale: 1000,
+ bestEffort: true,
+ maxPixels: 1e9
+});
+var areaFiresLoss = ee.Number(forestFiresLossStats.get('loss')).divide(1e6);
+
+print('Forest area loss due to fires 2018: ', areaFiresLoss, ' square km');
