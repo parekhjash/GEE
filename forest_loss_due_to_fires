@@ -11,7 +11,7 @@ var countries = ee.FeatureCollection('USDOS/LSIB_SIMPLE/2017');
 var country = countries.filter(ee.Filter.eq('country_na', 'Brazil'));
 
 // Set the map center to be the Amazon Rainforest in Brazil
-Map.setCenter(-11.2027,-17.1839,5)
+Map.setCenter(-62.2159,-3.4653,5)
 
 // Get the forest loss image from the Hansen Global Forest Change dataset
 var gfc = ee.Image('UMD/hansen/global_forest_change_2018_v1_6');
