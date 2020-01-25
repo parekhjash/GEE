@@ -1,0 +1,73 @@
+// Jash Parekh
+// 01/24/2019
+// Evergreen Valley High School
+
+// This program uses the CHIRPS dataset, obtained from Google Earth Engine and the University of California at Santa Barbara ...
+// to produce a bad chartt of precipitation over time. The user can choose to input the country of their choice and can change ...
+// the dates for the data put into the bar chart. As an example, I have chose the country India, and have calculated total rainfall ...
+// from 2010 - 2020. 
+
+
+// import chirps dataset
+var dataset = ee.ImageCollection('UCSB-CHG/CHIRPS/DAILY')
+
+// set beginning and end
+var startyear = 2010;
+var endyear = 2020;
+ 
+// set dates
+var begin = ee.Date.fromYMD(startyear, 1, 1);
+var end = ee.Date.fromYMD(endyear + 1, 1, 1);
+ 
+// make a sequence with the years you want to include in the data
+var years = ee.List.sequence(startyear, endyear);
+
+// specify geography
+var country_names = ['India'];
+ 
+// load feature collection
+var countries = ee.FeatureCollection('ft:1tdSwUL7MVpOauSgRzqVTOwdfy17KDbw-1d9omPw');
+ 
+// filter to country
+var India = countries.filter(ee.Filter.inList('Country', country_names));
+ 
+// set geo for India
+var India = India.geometry();
+var annualPrecip = ee.ImageCollection.fromImages(
+  years.map(function (year) {
+    var annual = dataset
+        .filter(ee.Filter.calendarRange(year, year, 'year'))
+        .sum();
+    return annual
+        .set('year', year)
+        .set('system:time_start', ee.Date.fromYMD(year, 1, 1));
+}));
+
+var title = {
+  title: 'Annual precipitation',
+  hAxis: {title: 'Time'},
+  vAxis: {title: 'Precipitation (mm)'},
+};
+ 
+var chart = ui.Chart.image.seriesByRegion({
+  imageCollection: annualPrecip,
+  regions: India,
+  reducer: ee.Reducer.mean(),
+  band: 'precipitation',
+  scale: 2500,
+  xProperty: 'system:time_start',
+  seriesProperty: 'SITE'
+}).setOptions(title)
+  .setChartType('ColumnChart');
+  
+print(chart);
+  
+var annualMean = annualPrecip.mean().clip(India);
+var pViz = {
+  min: 2000,
+  max: 5500,
+  palette: '000000, 0000FF, FDFF92, FF2700, FF00E7'
+};
+ 
+Map.centerObject(India, 5);
+Map.addLayer(annualMean, pViz, 'mean yearly P');
