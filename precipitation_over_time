@@ -2,9 +2,9 @@
 // 01/24/2019
 // Evergreen Valley High School
 
-// This program uses the CHIRPS dataset, obtained from Google Earth Engine and the University of California at Santa Barbara ...
-// to produce a bad chartt of precipitation over time. The user can choose to input the country of their choice and can change ...
-// the dates for the data put into the bar chart. As an example, I have chose the country India, and have calculated total rainfall ...
+// This program uses the CHIRPS dataset, obtained from Google Earth Engine and the University of California at Santa Barbara
+// to produce a chart of precipitation over time. The user can choose to input the country of their choice and can change
+// the dates for the data put into the bar chart. As an example, I have chose the country India, and have calculated total rainfall
 // from 2010 - 2020. 
 
 
