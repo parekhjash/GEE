@@ -1,0 +1,173 @@
+// Jash R. Parekh
+// Evergreen Valley High School
+// First Updated: 03/30/2020
+// Last Updated: 04/13/2020
+
+// App that prints radiation due to lights in certain locations across the world. 
+// Shows brightness as a display on screen.
+
+// Set years and month
+var startYear = 2012;
+var endYear = 2019;
+var years = ee.List.sequence(startYear, endYear);
+var months = ee.List.sequence(1, 12);
+
+var dataset = ee.ImageCollection('NOAA/VIIRS/DNB/MONTHLY_V1/VCMCFG')
+                 .filter(ee.Filter.date('2012-04-01', '2019-12-31'));
+Map.addLayer(dataset);
+
+// Center map
+Map.setCenter(81.2714, 16.5079, 3);   // Godavari River Basin Irrigation Project, India
+
+// Loop over the years and months to get images
+var byMonth = ee.ImageCollection(ee.FeatureCollection(years.map(function (y) {
+ var yearCollection = dataset.filter(ee.Filter.calendarRange(y, y, 'year'));
+ var byYear = ee.ImageCollection.fromImages(
+   months.map(function (m) {
+     var meanImage = yearCollection.filter(ee.Filter.calendarRange(m, m, 'month'))
+         .select('avg_rad')
+         .mean();
+     var date = ee.Date.fromYMD(y, m, 1).format("YYYY_MM");
+     return meanImage.rename(date).set('system:time_start', ee.Date.fromYMD(y, m, 1));
+   }));
+ return byYear;
+})).flatten());
+
+
+// Define a FeatureCollection: regions of the world.
+ var SF = ee.FeatureCollection([
+  ee.Feature(    // San Francisco.
+    ee.Geometry.Rectangle(-122.45, 37.74, -122.4, 37.8), {label: 'SF'})]);
+ var SYD = ee.FeatureCollection([ee.Feature(    // Sydney.
+    ee.Geometry.Rectangle(151.1311, -33.8536, 151.2464, -33.9949), {label: 'Sydney'})]);
+ var NY = ee.FeatureCollection([ee.Feature(    // Manhattan.
+   ee.Geometry.Rectangle(-74.0371, 40.9243, -74.1964, 40.6664), {label: 'Manhattan, NY'})]);
+ var CT = ee.FeatureCollection([ee.Feature(    // Cape Town, SA.
+     ee.Geometry.Rectangle(18.4845, -33.8063, 18.4351, -33.9295), {label: 'Cape Town'})]);
+
+
+// Button widget for SF
+var button1 = ui.Button('San Francisco, USA');
+
+// Set a callback function to run when the
+// button is clicked.
+button1.onClick(function() {
+  var tempTimeSeries1 = ui.Chart.image.seriesByRegion(
+   byMonth, SF, ee.Reducer.mean(), 0, 200, 'system:time_start', 'label')
+       .setChartType('ScatterChart')
+       .setOptions({
+         title: 'Night Time Radiance in SF',
+         vAxis: {title: 'avg_rad'},
+         lineWidth: 1,
+         pointSize: 4,
+         series: {
+           0: {color: 'FF0000'}, // SF
+}});
+panel.add(tempTimeSeries1);
+});
+
+// Button widget for SYD
+var button2 = ui.Button('Sydney, AUS');
+
+// Set a callback function to run when the
+// button is clicked.
+button2.onClick(function() {
+  var tempTimeSeries2 = ui.Chart.image.seriesByRegion(
+   byMonth, SYD, ee.Reducer.mean(), 0, 200, 'system:time_start', 'label')
+       .setChartType('ScatterChart')
+       .setOptions({
+         title: 'Night Time Radiance in Sydney, AUS',
+         vAxis: {title: 'avg_rad'},
+         lineWidth: 1,
+         pointSize: 4,
+         series: {
+           0: {color: 'FF0000'}, // Sydney
+}});
+panel.add(tempTimeSeries2);
+});
+
+// Button widget for NY
+var button3 = ui.Button('Manhattan, NY, USA');
+
+// Set a callback function to run when the
+// button is clicked.
+button3.onClick(function() {
+  var tempTimeSeries3 = ui.Chart.image.seriesByRegion(
+   byMonth, NY, ee.Reducer.mean(), 0, 200, 'system:time_start', 'label')
+       .setChartType('ScatterChart')
+       .setOptions({
+         title: 'Night Time Radiance in Manhattan',
+         vAxis: {title: 'avg_rad'},
+         lineWidth: 1,
+         pointSize: 4,
+         series: {
+           0: {color: 'FF0000'}, // Manhattan
+}});
+panel.add(tempTimeSeries3);
+});
+
+
+    
+// Button widget for Cape Town, SA
+var button4 = ui.Button('Cape Town, SA');
+
+// Set a callback function to run when the
+// button is clicked.
+button4.onClick(function() {
+  var tempTimeSeries4 = ui.Chart.image.seriesByRegion(
+   byMonth, CT, ee.Reducer.mean(), 0, 200, 'system:time_start', 'label')
+       .setChartType('ScatterChart')
+       .setOptions({
+         title: 'Night Time Radiance in Cape Town',
+         vAxis: {title: 'avg_rad'},
+         lineWidth: 1,
+         pointSize: 4,
+         series: {
+           0: {color: 'FF0000'}, // Cape Town
+}});
+panel.add(tempTimeSeries4);
+});
+
+//////////////////////////////////////////////////////////////////////////////////
+
+// Start of UI
+
+// Add a panel to place buttons, description
+var panel = ui.Panel()
+panel.style().set({
+  maxHeight: '700px',
+  maxWidth: '450px',
+  position: 'top-left'
+});
+
+// Title
+var title = ui.Label({
+  value: 'Nighttime Radiation Change Map',
+  style: {fontWeight: 'bold',
+    fontSize: '32px',
+    padding: '10px',
+    color: '#616161',}
+})
+
+// Text description
+var text = ui.Label({
+  value: 'Use this app to map and plot changes in the extent of global nighttime radiation over the past 8 years. The data has been taken from the VIIRS dataset, provided by NOAA. Click on any of the 4 cities to show a detailed graph of radiation over time.',
+  style: {fontSize: '14px',
+    fontWeight: 'bold',
+    color: '#9E9E9E',
+    padding: '8px',
+    // backgroundColor: colors.transparent,
+    border: '4px solid rgba(97, 97, 97, 0.05)'
+
+  }
+})
+
+// Add buttons and descriptions to map
+ui.root.add(panel);
+panel.add(title);
+panel.add(text);
+panel.add(button1);
+panel.add(button2);
+panel.add(button3);
+panel.add(button4);
+Map.add(panel);
